@@ -4,8 +4,6 @@ test_searcher.py — Tests for the programmatic search_memories API.
 Tests the library-facing search interface (not the CLI print variant).
 """
 
-import chromadb
-
 from mempalace.searcher import search_memories
 
 
