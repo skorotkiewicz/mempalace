@@ -41,7 +41,7 @@ mempalace = "mempalace:main"
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4.0", "psutil>=5.9"]
 spellcheck = ["autocorrect>=2.0"]
-agent = ["fastapi>=0.100", "uvicorn>=0.23", "httpx>=0.24"]
+agent = ["fastapi>=0.100", "uvicorn>=0.23"]
 
 [dependency-groups]
 dev = ["pytest>=7.0", "pytest-cov>=4.0", "ruff>=0.4.0", "psutil>=5.9"]

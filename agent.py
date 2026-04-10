@@ -23,26 +23,31 @@ Environment:
 Connect your client to the AGENT_BASE_URL.
 """
 
+import argparse
+import hashlib
+import json
+import logging
 import os
 import sys
-import json
-import argparse
-import logging
-from pathlib import Path
-from typing import Optional, List, Dict, Any, AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
-# FastAPI imports
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
 import uvicorn
 
-# HTTP client for backend
-import httpx
+# FastAPI imports
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+
+# OpenAI client for backend (works with any OpenAI-compatible API)
+from openai import AsyncOpenAI
+
+from mempalace.config import MempalaceConfig, sanitize_name
 
 # MemPalace imports
 from mempalace.layers import MemoryStack
-from mempalace.config import MempalaceConfig
+from mempalace.palace import get_collection
 
 # Setup logging
 logging.basicConfig(
@@ -92,10 +97,10 @@ class MemPalaceAgent:
         self.wake_up_context = self.stack.wake_up(wing=wake_up_wing)
         logger.info(f"Loaded wake-up context (~{len(self.wake_up_context) // 4} tokens)")
 
-        # HTTP client for backend
-        self.client = httpx.AsyncClient(
+        # OpenAI client for backend (works with any OpenAI-compatible API)
+        self.client = AsyncOpenAI(
             base_url=self.backend_url,
-            headers={"Authorization": f"Bearer {self.backend_key}"},
+            api_key=self.backend_key,
             timeout=300.0,
         )
 
@@ -146,125 +151,168 @@ class MemPalaceAgent:
 
         return enhanced
 
-    async def chat_completions(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle chat completions request with memory enhancement."""
-        # Extract messages
+    async def chat_completions(
+        self, request_data: Dict[str, Any]
+    ) -> Union[Dict[str, Any], AsyncGenerator[str, None]]:
+        """Handle chat completions (streaming or non-streaming) with memory enhancement."""
         messages = request_data.get("messages", [])
         if not messages:
             raise HTTPException(status_code=400, detail="No messages provided")
+
+        is_streaming = request_data.get("stream", False)
 
         # Check if this is a search query we should augment
         last_message = messages[-1] if messages else {}
         if last_message.get("role") == "user":
             user_query = last_message.get("content", "")
-            # Perform L3 search for relevant context
             search_results = self.stack.search(user_query, n_results=3)
             if search_results and "No results" not in search_results:
-                # Inject search results into system context
                 messages = self._inject_search_context(messages, search_results)
 
         # Enhance with MemPalace wake-up context
         enhanced_messages = self._enhance_messages(messages)
 
-        # Prepare backend request
-        backend_request = {
-            **request_data,
-            "messages": enhanced_messages,
+        # Build kwargs for OpenAI client
+        kwargs = {
             "model": self.backend_model,
+            "messages": enhanced_messages,
+            "stream": is_streaming,
         }
+        # Forward optional parameters
+        for param in [
+            "temperature",
+            "max_tokens",
+            "top_p",
+            "frequency_penalty",
+            "presence_penalty",
+            "stop",
+        ]:
+            if param in request_data:
+                kwargs[param] = request_data[param]
 
-        # Remove fields that shouldn't be forwarded
-        for key in ["user", "session_id"]:
-            backend_request.pop(key, None)
-
-        # Forward to backend
         try:
-            response = await self.client.post(
-                "/chat/completions",
-                json=backend_request,
-                headers={"Content-Type": "application/json"},
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPError as e:
+            response = await self.client.chat.completions.create(**kwargs)
+
+            if is_streaming:
+                # Return streaming generator
+                return self._stream_response(response, messages)
+            else:
+                # Return dict response
+                result = self._openai_response_to_dict(response)
+                # Store conversation (non-blocking, fire-and-forget)
+                response_content = self._extract_response_content(response)
+                self._store_conversation(messages, response_content, self.backend_model)
+                return result
+
+        except Exception as e:
             logger.error(f"Backend error: {e}")
             raise HTTPException(status_code=502, detail=f"Backend error: {e}")
+
+    async def _stream_response(
+        self, stream, original_messages: List[Dict[str, str]]
+    ) -> AsyncGenerator[str, None]:
+        """Stream OpenAI response as SSE events and store conversation."""
+        content_buffer = []
+
+        async for chunk in stream:
+            # Extract content for storage
+            if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                content_buffer.append(chunk.choices[0].delta.content)
+
+            data = json.dumps(self._openai_stream_chunk_to_dict(chunk))
+            yield f"data: {data}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+        # Store the complete conversation after streaming
+        if content_buffer:
+            full_response = "".join(content_buffer)
+            self._store_conversation(original_messages, full_response, self.backend_model)
+
+    def _openai_response_to_dict(self, response) -> Dict[str, Any]:
+        """Convert OpenAI response object to dict."""
+        return {
+            "id": response.id,
+            "object": response.object,
+            "created": response.created,
+            "model": response.model,
+            "choices": [
+                {
+                    "index": choice.index,
+                    "message": {
+                        "role": choice.message.role,
+                        "content": choice.message.content,
+                    },
+                    "finish_reason": choice.finish_reason,
+                }
+                for choice in response.choices
+            ],
+            "usage": {
+                "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                "completion_tokens": response.usage.completion_tokens if response.usage else 0,
+                "total_tokens": response.usage.total_tokens if response.usage else 0,
+            }
+            if response.usage
+            else None,
+        }
+
+    def _openai_stream_chunk_to_dict(self, chunk) -> Dict[str, Any]:
+        """Convert OpenAI stream chunk to dict."""
+        return {
+            "id": chunk.id,
+            "object": chunk.object,
+            "created": chunk.created,
+            "model": chunk.model,
+            "choices": [
+                {
+                    "index": choice.index,
+                    "delta": {
+                        "role": choice.delta.role if choice.delta.role else None,
+                        "content": choice.delta.content if choice.delta.content else None,
+                    },
+                    "finish_reason": choice.finish_reason,
+                }
+                for choice in chunk.choices
+            ],
+        }
 
     def _inject_search_context(
         self, messages: List[Dict[str, str]], search_results: str
     ) -> List[Dict[str, str]]:
         """Inject L3 search results into the conversation context."""
-        # Find system message or create one
         has_system = False
         for msg in messages:
             if msg.get("role") == "system":
                 has_system = True
                 original = msg.get("content", "")
-                msg["content"] = (
-                    f"{original}\n\n## Relevant Memories (from search)\n{search_results}"
-                )
+                msg["content"] = f"{original}\n\n## Relevant Memories\n{search_results}"
                 break
 
         if not has_system:
-            # Insert at beginning
             messages.insert(
                 0, {"role": "system", "content": f"## Relevant Memories\n{search_results}"}
             )
 
         return messages
 
-    async def chat_completions_stream(
-        self, request_data: Dict[str, Any]
-    ) -> AsyncGenerator[str, None]:
-        """Handle streaming chat completions."""
-        messages = request_data.get("messages", [])
-        if not messages:
-            raise HTTPException(status_code=400, detail="No messages provided")
-
-        # Check if this is a search query
-        last_message = messages[-1] if messages else {}
-        if last_message.get("role") == "user":
-            user_query = last_message.get("content", "")
-            search_results = self.stack.search(user_query, n_results=3)
-            if search_results and "No results" not in search_results:
-                messages = self._inject_search_context(messages, search_results)
-
-        enhanced_messages = self._enhance_messages(messages)
-
-        backend_request = {
-            **request_data,
-            "messages": enhanced_messages,
-            "model": self.backend_model,
-            "stream": True,
-        }
-
-        for key in ["user", "session_id"]:
-            backend_request.pop(key, None)
-
-        try:
-            async with self.client.stream(
-                "POST",
-                "/chat/completions",
-                json=backend_request,
-                headers={"Content-Type": "application/json"},
-                timeout=300.0,
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.strip():
-                        yield line + "\n"
-        except httpx.HTTPError as e:
-            logger.error(f"Backend streaming error: {e}")
-            error_data = json.dumps({"error": {"message": str(e)}})
-            yield f"data: {error_data}\n\n"
-
     async def models(self) -> Dict[str, Any]:
         """Return available models (proxied from backend)."""
         try:
-            response = await self.client.get("/models")
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPError:
+            response = await self.client.models.list()
+            # Convert to dict format
+            return {
+                "object": "list",
+                "data": [
+                    {
+                        "id": model.id,
+                        "object": "model",
+                        "created": getattr(model, "created", 0),
+                        "owned_by": getattr(model, "owned_by", "unknown"),
+                    }
+                    for model in response.data
+                ],
+            }
+        except Exception:
             # Return a default model if backend doesn't support /models
             return {
                 "object": "list",
@@ -280,7 +328,74 @@ class MemPalaceAgent:
 
     async def close(self):
         """Cleanup resources."""
-        await self.client.aclose()
+        await self.client.close()
+
+    def _store_conversation(
+        self,
+        messages: List[Dict[str, str]],
+        response_content: str,
+        model: str,
+        wing: str = "conversations",
+        room: str = "general",
+    ):
+        """Store conversation exchange to MemPalace."""
+        if not self.auto_store:
+            return
+
+        try:
+            # Build conversation content
+            user_msg = ""
+            for msg in reversed(messages):
+                if msg.get("role") == "user":
+                    user_msg = msg.get("content", "")
+                    break
+
+            content = f"User: {user_msg}\n\nAssistant ({model}): {response_content}"
+
+            # Get collection
+            collection = get_collection(self.palace_path, "mempalace_drawers")
+
+            # Generate deterministic ID
+            content_hash = hashlib.sha256((wing + room + content[:100]).encode()).hexdigest()[:24]
+            drawer_id = f"drawer_{wing}_{room}_{content_hash}"
+
+            # Check if already exists (idempotency)
+            try:
+                existing = collection.get(ids=[drawer_id])
+                if existing and existing["ids"]:
+                    return
+            except Exception:
+                pass
+
+            # Sanitize names
+            wing_clean = sanitize_name(wing, "wing")
+            room_clean = sanitize_name(room, "room")
+
+            # Store the conversation
+            collection.add(
+                ids=[drawer_id],
+                documents=[content],
+                metadatas=[
+                    {
+                        "wing": wing_clean,
+                        "room": room_clean,
+                        "source_file": "agent_conversation",
+                        "chunk_index": 0,
+                        "added_by": "mempalace_agent",
+                        "filed_at": datetime.now().isoformat(),
+                        "type": "conversation",
+                    }
+                ],
+            )
+            logger.debug(f"Stored conversation to {wing_clean}/{room_clean}: {drawer_id}")
+        except Exception as e:
+            logger.warning(f"Failed to store conversation: {e}")
+
+    def _extract_response_content(self, response) -> str:
+        """Extract content from OpenAI response."""
+        if hasattr(response, "choices") and response.choices:
+            return response.choices[0].message.content or ""
+        return ""
 
 
 # FastAPI app
@@ -307,37 +422,23 @@ def create_app(agent: MemPalaceAgent) -> FastAPI:
         """List available models."""
         return await agent.models()
 
-    @app.get("/models")
-    async def list_models_compat():
-        """List models (compat endpoint)."""
-        return await agent.models()
-
     @app.post("/v1/chat/completions")
     async def chat_completions(request: Request):
-        """Chat completions endpoint."""
+        """Chat completions endpoint (streaming or non-streaming)."""
         try:
             request_data = await request.json()
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid JSON")
 
         is_streaming = request_data.get("stream", False)
+        result = await agent.chat_completions(request_data)
 
         if is_streaming:
-            return StreamingResponse(
-                agent.chat_completions_stream(request_data),
-                media_type="text/event-stream",
-            )
+            return StreamingResponse(result, media_type="text/event-stream")
         else:
-            result = await agent.chat_completions(request_data)
             return JSONResponse(content=result)
 
-    @app.post("/chat/completions")
-    async def chat_completions_compat(request: Request):
-        """Chat completions (compat endpoint)."""
-        return await chat_completions(request)
-
     @app.get("/v1/health")
-    @app.get("/health")
     async def health():
         """Health check endpoint."""
         return {
@@ -348,7 +449,6 @@ def create_app(agent: MemPalaceAgent) -> FastAPI:
         }
 
     @app.post("/v1/memory/search")
-    @app.post("/memory/search")
     async def memory_search(request: Request):
         """Direct memory search endpoint."""
         try:
@@ -364,7 +464,6 @@ def create_app(agent: MemPalaceAgent) -> FastAPI:
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/v1/memory/status")
-    @app.get("/memory/status")
     async def memory_status():
         """Get memory stack status."""
         return agent.stack.status()
