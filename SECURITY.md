@@ -2,30 +2,32 @@
 
 ## Supported Versions
 
-Please check the table below for the supported versions that are currently receiving security updates.
+MemPalace follows semantic versioning. Security fixes land on the current major version line.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| `main` / `develop` | :white_check_mark: |
-| `< 1.0.0` | :x:                |
-
-*(Note: Adjust the table above to reflect MemPalace's actual release cycle)*
+| Version            | Supported |
+| ------------------ | --------- |
+| 3.x (current)      | Yes       |
+| 2.x and earlier    | No        |
 
 ## Reporting a Vulnerability
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-We take the security of MemPalace seriously. If you believe you have found a security vulnerability, please report it to us privately using one of the following methods:
+We take the security of MemPalace seriously. If you believe you have found a security vulnerability, please report it privately using **GitHub Private Vulnerability Reporting**:
 
-1. **GitHub Private Vulnerability Reporting:** Navigate to the "Security" tab in this repository, click on "Advisories," and select "Report a vulnerability."
-2. **Direct Contact:** If private reporting is not enabled, please email the core maintainers directly at `[Insert Maintainer Email Here]`.
+1. Open the [Security tab](https://github.com/MemPalace/mempalace/security) of this repository.
+2. Click **Advisories** → **Report a vulnerability**.
+3. Fill in the form with the details below.
 
-### What to include in your report:
-* A descriptive summary of the vulnerability.
-* Detailed steps to reproduce the issue (including any proof-of-concept scripts or specific file paths).
-* The potential impact and severity of the vulnerability.
+### What to include in your report
 
-### What to expect:
-* We aim to acknowledge receipt of your vulnerability report within 48 hours.
-* We will triage the issue and keep you updated on our progress toward a patch.
-* Once the vulnerability is resolved and an update is released, we will publish a security advisory and credit you for the discovery (if you wish to be credited).
+- A descriptive summary of the vulnerability.
+- Detailed steps to reproduce the issue (including any proof-of-concept scripts or specific file paths).
+- The affected version(s) and platform(s).
+- The potential impact and severity.
+
+### What to expect
+
+- We aim to acknowledge receipt within 48 hours.
+- We will triage the issue and keep you updated on progress toward a patch.
+- Once the vulnerability is resolved and an update is released, we will publish a security advisory and credit you for the discovery (if you wish to be credited).
