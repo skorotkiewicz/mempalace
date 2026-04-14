@@ -9,7 +9,7 @@ function normalizeBase(base?: string): string {
   return base.endsWith('/') ? base : `${base}/`
 }
 
-const docsBase = normalizeBase(process.env.DOCS_BASE || '/mempalace/')
+const docsBase = normalizeBase(process.env.DOCS_BASE || '/')
 const editBranch = process.env.DOCS_EDIT_BRANCH || 'main'
 
 export default withMermaid(
