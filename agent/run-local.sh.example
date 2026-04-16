@@ -1,0 +1,5 @@
+LLM_BASE_URL="http://192.168.0.124:8888/v1" \
+LLM_API_KEY="dummy" \
+LLM_MODEL="local" \
+AGENT_BASE_URL="http://0.0.0.0:8889/v1" \
+uv run agent.py --data=my-agent
