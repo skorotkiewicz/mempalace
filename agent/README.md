@@ -1,6 +1,6 @@
 # MemPalace Agent
 
-`mempalace-agent` is a small OpenAI-compatible proxy that sits in front of any LLM endpoint and gives it memory.
+MemPalace Agent is a small OpenAI-compatible proxy that sits in front of any LLM endpoint and gives it memory.
 
 It does three things:
 
@@ -16,7 +16,7 @@ Main module: `agent.py`
 
 ```bash
 cd agent
-pip install .
+uv sync
 ```
 
 ## Run
@@ -24,7 +24,7 @@ pip install .
 ```bash
 AGENT_LLM_BASE_URL="http://localhost:8000/v1" \
 AGENT_LLM_MODEL="your-model" \
-mempalace-agent --data ~/my-agent
+uv run agent.py --data ~/my-agent
 ```
 
 By default the proxy serves on `http://127.0.0.1:8001/v1`.
@@ -35,7 +35,7 @@ You can also bind it explicitly:
 AGENT_BASE_URL="http://0.0.0.0:8889/v1" \
 AGENT_LLM_BASE_URL="http://192.168.0.124:8888/v1" \
 AGENT_LLM_MODEL="your-model" \
-mempalace-agent --data ~/my-agent
+uv run agent.py --data ~/my-agent
 ```
 
 Then point any OpenAI-compatible client at:
