@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mempalace-agent"
+version = "0.1.0"
+description = "OpenAI-compatible MemPalace proxy that adds durable local memory to any LLM endpoint."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "MemPalace"},
+]
+keywords = ["mempalace", "agent", "llm", "proxy", "memory", "openai-compatible"]
+dependencies = [
+    "mempalace>=3.3.0",
+    "fastapi>=0.110,<1",
+    "uvicorn>=0.30,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/MemPalace/mempalace"
+Repository = "https://github.com/MemPalace/mempalace"
+
+[project.scripts]
+mempalace-agent = "agent:main"
+
+[tool.setuptools]
+py-modules = ["agent"]
