@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional
 
 from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from mempalace.config import MempalaceConfig, sanitize_content, sanitize_name
 from mempalace.layers import MemoryStack
@@ -67,6 +68,15 @@ def _json_env_dict(name: str) -> Dict[str, str]:
     ):
         raise ValueError(f"{name} must be a JSON object of string:string pairs")
     return parsed
+
+
+def _cors_origins_from_env() -> List[str]:
+    raw = os.environ.get("AGENT_CORS_ALLOW_ORIGINS", "*").strip()
+    if not raw:
+        return ["*"]
+    if raw == "*":
+        return ["*"]
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
 def _normalize_base_url(url: str) -> str:
@@ -523,6 +533,13 @@ def create_app(agent: MemPalaceProxyAgent):
         description="OpenAI-compatible proxy with MemPalace memory injection",
         version="1.0.0",
         lifespan=lifespan,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins_from_env(),
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.get("/v1/health")
