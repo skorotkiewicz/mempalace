@@ -1,0 +1,1 @@
+PORT=8007 MODEL_PATH=model/gemma-4-E2B-it.litertlm uv run server.py

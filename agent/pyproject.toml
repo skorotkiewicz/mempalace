@@ -17,6 +17,7 @@ dependencies = [
     "mempalace>=3.3.0",
     "fastapi>=0.110,<1",
     "uvicorn>=0.30,<1",
+    "litert-lm>=0.10.1"
 ]
 
 [project.urls]
