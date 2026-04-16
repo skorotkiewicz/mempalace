@@ -17,6 +17,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -292,8 +293,12 @@ class ConversationStore:
     def save_async_fire_and_forget(self, user_text: str, assistant_text: str, model: str) -> None:
         if not user_text.strip() or not assistant_text.strip():
             return
-        loop = asyncio.get_running_loop()
-        loop.run_in_executor(None, self._safe_save, user_text, assistant_text, model)
+        worker = threading.Thread(
+            target=self._safe_save,
+            args=(user_text, assistant_text, model),
+            daemon=True,
+        )
+        worker.start()
 
     def _safe_save(self, user_text: str, assistant_text: str, model: str) -> None:
         try:
