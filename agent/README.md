@@ -50,7 +50,8 @@ http://127.0.0.1:8889/v1
 curl http://127.0.0.1:8001/v1/chat/completions \
   -X POST \
   -H 'Content-Type: application/json' \
-  --data-raw '{"messages":[{"role":"user","content":"hi"}],"stream":false}'
+  --data-raw '{"messages":[{"role":"user","content":"whats my name?"}],"stream":false}'
+  # { "choices": [ { "message": { "role": "assistant", "content": "Your name is Sebastian." } } ] }
 ```
 
 ## Environment
