@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Learn About Humans</title>
+    <style>
+      :root {
+        --bg: #f4efe4;
+        --bg-strong: #ead9bb;
+        --panel: rgba(255, 250, 240, 0.78);
+        --panel-strong: rgba(255, 248, 232, 0.94);
+        --text: #1f1b16;
+        --muted: #61584b;
+        --line: rgba(48, 34, 17, 0.12);
+        --accent: #b6542a;
+        --accent-2: #194f45;
+        --user: #1e2b5c;
+        --shadow: 0 24px 80px rgba(49, 31, 9, 0.16);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(182, 84, 42, 0.18), transparent 28%),
+          radial-gradient(circle at 80% 20%, rgba(25, 79, 69, 0.14), transparent 26%),
+          radial-gradient(circle at bottom right, rgba(73, 51, 116, 0.12), transparent 28%),
+          linear-gradient(180deg, #f7f1e5 0%, #f3ead6 42%, #efe2c8 100%);
+        font-family: "Georgia", "Iowan Old Style", "Palatino Linotype", serif;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
+
+      .noise {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.18;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23755b30' stroke-opacity='.08'%3E%3Cpath d='M0 70h140M70 0v140'/%3E%3Ccircle cx='70' cy='70' r='48'/%3E%3C/g%3E%3C/svg%3E");
+        mix-blend-mode: multiply;
+      }
+
+      .shell {
+        width: min(1240px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 32px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 24px;
+        align-items: stretch;
+      }
+
+      .card {
+        position: relative;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow);
+      }
+
+      .intro {
+        padding: 34px;
+        overflow: hidden;
+      }
+
+      .intro::before {
+        content: "";
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        right: -90px;
+        top: -90px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(182, 84, 42, 0.18), transparent 70%);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 252, 246, 0.85);
+        border: 1px solid rgba(48, 34, 17, 0.1);
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), #f2994a);
+        box-shadow: 0 0 0 6px rgba(182, 84, 42, 0.12);
+      }
+
+      h1 {
+        margin: 20px 0 14px;
+        max-width: 11ch;
+        font-size: clamp(3rem, 6vw, 5.6rem);
+        line-height: 0.93;
+        font-weight: 600;
+        letter-spacing: -0.05em;
+      }
+
+      .lede {
+        max-width: 58ch;
+        color: var(--muted);
+        font-size: 1.07rem;
+        line-height: 1.7;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 26px;
+      }
+
+      .fact {
+        padding: 16px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 251, 244, 0.9);
+        border: 1px solid rgba(48, 34, 17, 0.08);
+      }
+
+      .fact strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+      }
+
+      .fact span {
+        color: var(--muted);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .chat-wrap {
+        display: grid;
+      }
+
+      .chat-card {
+        padding: 20px;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        min-height: 720px;
+        background: linear-gradient(180deg, var(--panel-strong), rgba(255, 247, 230, 0.85));
+      }
+
+      .chat-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .chat-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #aa8e52;
+        box-shadow: 0 0 0 5px rgba(170, 142, 82, 0.14);
+        transition: background 140ms ease;
+      }
+
+      .status.online .status-dot {
+        background: #2d8a6d;
+        box-shadow: 0 0 0 5px rgba(45, 138, 109, 0.14);
+      }
+
+      .control-row {
+        display: grid;
+        grid-template-columns: 1.4fr auto;
+        gap: 12px;
+        margin: 16px 0;
+      }
+
+      .input-shell {
+        position: relative;
+      }
+
+      .input-shell label {
+        position: absolute;
+        top: 10px;
+        left: 14px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: rgba(31, 27, 22, 0.52);
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input {
+        width: 100%;
+        padding: 28px 14px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(48, 34, 17, 0.12);
+        background: rgba(255, 253, 248, 0.94);
+        color: var(--text);
+      }
+
+      .ghost {
+        border: 1px solid rgba(48, 34, 17, 0.12);
+        background: rgba(255, 251, 243, 0.86);
+        color: var(--text);
+        border-radius: 14px;
+        padding: 0 18px;
+        cursor: pointer;
+        transition: transform 140ms ease, background 140ms ease;
+      }
+
+      .ghost:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 247, 233, 0.96);
+      }
+
+      .messages {
+        min-height: 360px;
+        max-height: 100%;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding-right: 6px;
+      }
+
+      .message {
+        max-width: 88%;
+        padding: 14px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(48, 34, 17, 0.08);
+        line-height: 1.65;
+        white-space: pre-wrap;
+        animation: rise 180ms ease;
+      }
+
+      .message.user {
+        margin-left: auto;
+        background: linear-gradient(180deg, rgba(30, 43, 92, 0.96), rgba(36, 56, 116, 0.98));
+        color: #f8f6ff;
+        border-bottom-right-radius: 6px;
+      }
+
+      .message.assistant {
+        background: rgba(255, 252, 245, 0.98);
+        color: var(--text);
+        border-bottom-left-radius: 6px;
+      }
+
+      .message.system {
+        max-width: 100%;
+        background: rgba(25, 79, 69, 0.08);
+        color: #24453f;
+        border-style: dashed;
+        font-size: 0.95rem;
+      }
+
+      .composer {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      textarea {
+        min-height: 118px;
+        resize: vertical;
+        padding: 18px;
+        border-radius: 18px;
+        border: 1px solid rgba(48, 34, 17, 0.12);
+        background: rgba(255, 253, 247, 0.98);
+        color: var(--text);
+        line-height: 1.55;
+      }
+
+      .send {
+        min-width: 160px;
+        border: 0;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--accent), #da7a45 62%, #f2a15b);
+        color: #fffaf3;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        box-shadow: 0 18px 40px rgba(182, 84, 42, 0.26);
+        transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+      }
+
+      .send:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 22px 48px rgba(182, 84, 42, 0.32);
+      }
+
+      .send:disabled,
+      .ghost:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.6;
+      }
+
+      .footer-note code,
+      .hint code {
+        font-family: "SFMono-Regular", "JetBrains Mono", "Cascadia Code", monospace;
+        font-size: 0.9em;
+        padding: 0.18em 0.4em;
+        border-radius: 8px;
+        background: rgba(31, 27, 22, 0.08);
+      }
+
+      .hint {
+        margin-top: 24px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        background: rgba(255, 251, 242, 0.84);
+        border: 1px solid rgba(48, 34, 17, 0.08);
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 1040px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .chat-card {
+          min-height: 680px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          width: min(100vw - 18px, 1240px);
+          padding-top: 14px;
+        }
+
+        .intro,
+        .chat-card {
+          padding: 18px;
+        }
+
+        h1 {
+          max-width: none;
+          font-size: clamp(2.6rem, 14vw, 4rem);
+        }
+
+        .facts {
+          grid-template-columns: 1fr;
+        }
+
+        .control-row,
+        .composer {
+          grid-template-columns: 1fr;
+        }
+
+        .send {
+          min-height: 56px;
+        }
+
+        .message {
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="noise"></div>
+    <main class="shell">
+      <section class="hero">
+        <article class="card intro">
+          <div class="eyebrow">Collective Memory Experiment</div>
+          <h1>Learn About Humans.</h1>
+          <p class="lede">
+            This page talks to a MemPalace-backed agent running locally with
+            <code>uv run agent.py --data=humans/</code>. Every conversation can become memory.
+            The more people talk to it, the more the palace learns what humans care about,
+            repeat, fear, build, avoid, and return to.
+          </p>
+
+          <div class="facts">
+            <div class="fact">
+              <strong>Verbatim by default</strong>
+              <span>Conversations are stored as exact words, not reduced to summary slogans.</span>
+            </div>
+            <div class="fact">
+              <strong>Shared accumulation</strong>
+              <span>Point everyone at the same <code>humans/</code> data directory and the memory grows together.</span>
+            </div>
+            <div class="fact">
+              <strong>Local first</strong>
+              <span>The page can speak to your own agent endpoint on your own machine or network.</span>
+            </div>
+          </div>
+
+          <div class="hint">
+            Or start own API:
+            <br />
+            <code>uv run <a target="_blank" href="https://github.com/skorotkiewicz/mempalace/tree/agent/agent">agent.py</a> --data=humans/</code>
+            <br /><br />
+            Then chat. If multiple users use the same agent instance and data path, MemPalace keeps
+            collecting the topics and language patterns they bring into the room.
+          </div>
+        </article>
+
+        <section class="card chat-wrap">
+          <div class="chat-card">
+            <div class="chat-top">
+              <div>
+                <div class="chat-title">Chat With The Palace</div>
+              </div>
+              <div class="status" id="statusBadge">
+                <span class="status-dot"></span>
+                <span id="statusText">Checking agent</span>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <div class="input-shell">
+                <label for="endpoint">Agent endpoint</label>
+                <input id="endpoint" type="text" value="http://a.sekor.eu.org:8889/v1" />
+                <!--<input id="endpoint" type="text" value="http://127.0.0.1:8001/v1" />-->
+              </div>
+              <button class="ghost" id="pingButton" type="button">Check connection</button>
+            </div>
+
+            <div class="messages" id="messages" aria-live="polite"></div>
+
+            <form class="composer" id="chatForm">
+              <textarea
+                id="prompt"
+                placeholder="Ask about memory, people, work, habits, hopes, grief, code, food, routine, love, or whatever humans keep saying when they think someone is listening."
+              ></textarea>
+              <button class="send" id="sendButton" type="submit">Send Into Memory</button>
+            </form>
+
+            <div class="footer-note">
+              This UI sends requests to <code>/v1/chat/completions</code>. Successful chats are stored by the
+              agent, so future conversations can inherit context from what earlier users already said.
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const endpointInput = document.getElementById("endpoint");
+      const pingButton = document.getElementById("pingButton");
+      const statusBadge = document.getElementById("statusBadge");
+      const statusText = document.getElementById("statusText");
+      const messagesEl = document.getElementById("messages");
+      const chatForm = document.getElementById("chatForm");
+      const promptEl = document.getElementById("prompt");
+      const sendButton = document.getElementById("sendButton");
+
+      const storageKey = "mempalace-human-agent-endpoint";
+      const conversation = [];
+
+      function setStatus(text, online = false) {
+        statusText.textContent = text;
+        statusBadge.classList.toggle("online", online);
+      }
+
+      function escapeHtml(text) {
+        return text
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function addMessage(role, text) {
+        conversation.push({ role, content: text });
+        if (role === "system") return;
+        const node = document.createElement("div");
+        node.className = `message ${role}`;
+        node.innerHTML = escapeHtml(text);
+        messagesEl.appendChild(node);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function replaceLastAssistant(text) {
+        const last = messagesEl.querySelector(".message.assistant:last-child");
+        if (last) {
+          last.innerHTML = escapeHtml(text);
+        }
+        const item = [...conversation].reverse().find((entry) => entry.role === "assistant");
+        if (item) {
+          item.content = text;
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function currentEndpoint() {
+        return endpointInput.value.trim().replace(/\/$/, "");
+      }
+
+      async function pingAgent() {
+        const base = currentEndpoint();
+        if (!base) {
+          setStatus("Missing endpoint", false);
+          return;
+        }
+
+        setStatus("Checking agent", false);
+        try {
+          const response = await fetch(`${base}/health`);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const data = await response.json();
+          setStatus(`Connected${data.model ? ` · ${data.model}` : ""}`, true);
+          localStorage.setItem(storageKey, base);
+        } catch (error) {
+          setStatus("Agent offline or blocked by CORS", false);
+        }
+      }
+
+      async function sendMessage(text) {
+        const base = currentEndpoint();
+        const payload = {
+          messages: conversation
+            .filter((entry) => entry.role === "user" || entry.role === "assistant")
+            .concat([{ role: "user", content: text }]),
+          stream: false,
+        };
+
+        addMessage("user", text);
+        addMessage("assistant", "Listening...");
+        sendButton.disabled = true;
+        pingButton.disabled = true;
+
+        try {
+          const response = await fetch(`${base}/chat/completions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const detail = await response.text();
+            throw new Error(detail || `HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          const content =
+            data?.choices?.[0]?.message?.content ||
+            "The agent replied, but the payload did not include assistant text.";
+
+          replaceLastAssistant(content);
+          setStatus("Connected", true);
+          localStorage.setItem(storageKey, base);
+        } catch (error) {
+          replaceLastAssistant(
+            `Request failed.\n\n${error.message}\n\nMake sure the local agent is running with:\nuv run agent.py --data=humans/`
+          );
+          setStatus("Request failed", false);
+        } finally {
+          sendButton.disabled = false;
+          pingButton.disabled = false;
+        }
+      }
+
+      chatForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const text = promptEl.value.trim();
+        if (!text) {
+          return;
+        }
+        promptEl.value = "";
+        await sendMessage(text);
+      });
+
+      pingButton.addEventListener("click", pingAgent);
+
+      const savedEndpoint = localStorage.getItem(storageKey);
+      if (savedEndpoint) {
+        endpointInput.value = savedEndpoint;
+      }
+
+      addMessage(
+        "system",
+        "This interface assumes a local MemPalace agent is running. Every successful conversation can become part of the shared humans memory palace."
+      );
+      pingAgent();
+    </script>
+  </body>
+</html>
